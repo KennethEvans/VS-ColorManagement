@@ -9,6 +9,12 @@
 
 using namespace std;
 
+// Prototypes
+void getDisplays();
+void getProfile(TCHAR* szDisplayDeviceName, TCHAR* szPrefix);
+TCHAR* getErrorMsg();
+void displayLastError(LPTSTR lpszFunction);
+
 TCHAR* getErrorMsg() {
 	TCHAR buf[256];
 	FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM, NULL, GetLastError(),
@@ -16,8 +22,7 @@ TCHAR* getErrorMsg() {
 	return buf;
 }
 
-void displayLastError(LPTSTR lpszFunction)
-{
+void displayLastError(LPTSTR lpszFunction) {
 	// Retrieve the system error message for the last-error code
 
 	LPVOID lpMsgBuf;
@@ -47,11 +52,12 @@ void displayLastError(LPTSTR lpszFunction)
 	LocalFree(lpDisplayBuf);
 }
 
-void getDeviceNames() {
+void getDisplays() {
 	WCHAR szPath[MAX_PATH];
 	DISPLAY_DEVICE dd;
 	dd.cb = sizeof(dd);
 	int devNum = 0;
+	wcout <<  "Displays" << endl;
 	while (EnumDisplayDevices(NULL, devNum, &dd, 0)) {
 		wcout << "Device " << devNum << endl;
 		wcout
@@ -63,57 +69,35 @@ void getDeviceNames() {
 			<< " " << ((dd.StateFlags & DISPLAY_DEVICE_ACTIVE) ? "Active" : "")
 			<< " " << ((dd.StateFlags & DISPLAY_DEVICE_PRIMARY_DEVICE) ? "Primary" : "")
 			<< endl;
-		if (dd.StateFlags & DISPLAY_DEVICE_ACTIVE) {
-			WCHAR szPath[MAX_PATH];
-			if (WcsGetDefaultColorProfile(WCS_PROFILE_MANAGEMENT_SCOPE_CURRENT_USER,
-				dd.DeviceID,
-				CPT_ICC,
-				CPST_PERCEPTUAL, // Or CPST_ABSOLUTE_COLORIMETRIC,
-				devNum,  // dwProfileID -- doesn't seem to matter what value you use here
-				MAX_PATH * sizeof(WCHAR),
-				szPath)) {
-
-				wcout << "    Profile Name" << szPath << endl;
-
-#if 0
-				PROFILE profile;
-				profile.cbDataSize = (DWORD)(wcslen(szPath) + 1) * sizeof(WCHAR);
-				profile.dwType = PROFILE_FILENAME;
-				profile.pProfileData = (PVOID)szPath;
-
-				HPROFILE hProfile = OpenColorProfile(&profile,
-					PROFILE_READ, FILE_SHARE_READ, OPEN_EXISTING);
-
-				// Now do something with the profile
-				wcout << "    Profile Name" << profile.pProfileData << endl;
-
-				// Close the profile
-				CloseColorProfile(hProfile);
-#endif
-			} else {
-				cout << "WcsGetDefaultColorProfile failed" << endl;
-				displayLastError(_T("WcsGetDefaultColorProfile failed"));
-			}
-		}
+		getProfile(dd.DeviceName, _T("    "));
 		devNum++;
 	}
 }
 
 
-void getProfile() {
+void getProfile(TCHAR* szDisplayDeviceName, TCHAR* szPrefix) {
 	WCHAR szPath[MAX_PATH];
 	DISPLAY_DEVICE dd;
 	dd.cb = sizeof(dd);
-	TCHAR* szDisplayDeviceName = _T("\\.\\DISPLAY1");
-	if (EnumDisplayDevices(NULL, 0, &dd, EDD_GET_DEVICE_INTERFACE_NAME)) {
+	wcout << szPrefix << "Color Profile for " << szDisplayDeviceName << endl;
+	if (EnumDisplayDevices(szDisplayDeviceName, 0, &dd, EDD_GET_DEVICE_INTERFACE_NAME)) {
+		wcout
+			<< szPrefix << "    DeviceName=" << dd.DeviceName << endl
+			<< szPrefix << "    DeviceString=" << dd.DeviceString << endl
+			<< szPrefix << "    DeviceID=" << dd.DeviceID << endl
+			<< szPrefix << "    DeviceKey=" << dd.DeviceKey << endl
+			<< szPrefix << "    StateFlags=" << dd.StateFlags
+			<< szPrefix << " " << ((dd.StateFlags & DISPLAY_DEVICE_ACTIVE) ? "Active" : "")
+			<< szPrefix << " " << ((dd.StateFlags & DISPLAY_DEVICE_PRIMARY_DEVICE) ? "Primary" : "")
+			<< endl;
 		if (WcsGetDefaultColorProfile(WCS_PROFILE_MANAGEMENT_SCOPE_CURRENT_USER,
-			dd.DeviceKey,
+			dd.DeviceKey,  // Use DeviceKey for EDD_GET_DEVICE_INTERFACE_NAME, not Device.Name
 			CPT_ICC,
 			CPST_PERCEPTUAL,
 			1,  // dwProfileID -- doesn't seem to matter what value you use here
 			MAX_PATH * sizeof(WCHAR),
 			szPath)) {
-			wcout << "Color Profile" << szPath << endl;
+			wcout << szPrefix << "    Profile: " << szPath << endl;
 #if 0
 			PROFILE profile;
 			profile.cbDataSize = (DWORD)(wcslen(szPath) + 1) * sizeof(WCHAR);
@@ -126,19 +110,21 @@ void getProfile() {
 			// now do something with the profile
 #endif
 		} else {
-			cout << "WcsGetDefaultColorProfile failed" << endl;
-			displayLastError(_T("WcsGetDefaultColorProfile failed"));
+			wcout << szPrefix << _T("    Profile not found") << endl;
 		}
 	} else {
-		cout << "EnumDisplayDevices failed" << endl;
-		displayLastError(_T("EnumDisplayDevices failed"));
+		wcout << szPrefix << _T("    Device not found") << endl;
 	}
 }
 
-int main()
-{
-	//getProfile();
-	getDeviceNames();
+int main() {
+	TCHAR* szDisplayDeviceName = _T("\\\\.\\DISPLAY2");
+
+#if 1
+	getDisplays();
+#else
+	getProfile(szDisplayDeviceName, _T(""));
+#endif
 
 	return 0;
 }

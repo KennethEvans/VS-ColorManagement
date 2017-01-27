@@ -10,7 +10,7 @@
 using namespace std;
 
 // Prototypes
-void getDisplays();
+void getDisplayDevices();
 void getProfile(TCHAR* szDisplayDeviceName, TCHAR* szPrefix);
 TCHAR* getErrorMsg();
 void displayLastError(LPTSTR lpszFunction);
@@ -52,12 +52,12 @@ void displayLastError(LPTSTR lpszFunction) {
 	LocalFree(lpDisplayBuf);
 }
 
-void getDisplays() {
+void getDisplayDevices() {
 	WCHAR szPath[MAX_PATH];
 	DISPLAY_DEVICE dd;
 	dd.cb = sizeof(dd);
 	int devNum = 0;
-	wcout <<  "Displays" << endl;
+	wcout <<  "Display Devices" << endl;
 	while (EnumDisplayDevices(NULL, devNum, &dd, 0)) {
 		wcout << "Device " << devNum << endl;
 		wcout
@@ -118,10 +118,10 @@ void getProfile(TCHAR* szDisplayDeviceName, TCHAR* szPrefix) {
 }
 
 int main() {
-	TCHAR* szDisplayDeviceName = _T("\\\\.\\DISPLAY2");
+	TCHAR* szDisplayDeviceName = _T("\\\\.\\DISPLAY1");
 
 #if 1
-	getDisplays();
+	getDisplayDevices();
 #else
 	getProfile(szDisplayDeviceName, _T(""));
 #endif
